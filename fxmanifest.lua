@@ -3,7 +3,7 @@ game 'gta5'
 
 author 'Infin8RP'
 description 'Infin8_blipcreator - Personal Blip System'
-version '1.0.0'
+version '1.0.1'
 
 ui_page 'web/build/index.html'
 files {
