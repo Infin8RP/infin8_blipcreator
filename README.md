@@ -46,3 +46,8 @@ Blips are stored in `blips.json` with player accounts starting at ID 1000. Each 
 ## Support
 
 For issues or feature requests, please open an issue on the repository.
+
+## Screenshots
+<img width="2560" height="1440" alt="FiveM_GTAProcess_rsleQxihvi" src="https://github.com/user-attachments/assets/46add71c-d613-4bc2-b40a-440177a8028d" />
+<img width="2560" height="1440" alt="FiveM_GTAProcess_JrviVM5l8I" src="https://github.com/user-attachments/assets/db2b7747-9fec-4283-965b-c5dbe2a99be0" />
+
