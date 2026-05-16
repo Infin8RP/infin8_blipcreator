@@ -1,0 +1,22 @@
+{
+    "nextBlipId": 2,
+    "accounts": {
+        "license:53d7874f50e52c26934a13b38096b2cb48921ab2": 1000
+    },
+    "blips": {
+        "1000": [
+            {
+                "name": "MyLocation",
+                "coords": {
+                    "z": 31.6286334991455,
+                    "y": -644.4474487304688,
+                    "x": 46.37482070922851
+                },
+                "sprite": 108,
+                "color": 2,
+                "scale": 0.8
+            }
+        ]
+    },
+    "nextAccountId": 1001
+}
