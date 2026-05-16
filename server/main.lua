@@ -3,6 +3,33 @@ local PlayerBlips = {}
 local NextAccountId = 1000
 local NextBlipId = 1
 
+local function GetPlayerNameSafe(src)
+    local name = GetPlayerName(src)
+    return name or 'Unknown'
+end
+
+local function SendDiscordLog(title, description, color)
+    if not WebhookURL or WebhookURL == '' then return end
+
+    local embed = {
+        {
+            title = title,
+            description = description,
+            color = color,
+            footer = { text = 'Personal Blip System' },
+            timestamp = os.date('!%Y-%m-%dT%H:%M:%SZ')
+        }
+    }
+
+    local payload = json.encode({ username = 'Blip Logger', embeds = embed })
+
+    PerformHttpRequest(WebhookURL, function(err, text, headers)
+        if err ~= 200 and err ~= 204 then
+            print('[personalblips] Webhook error: ' .. tostring(err) .. ' - ' .. tostring(text))
+        end
+    end, 'POST', payload, { ['Content-Type'] = 'application/json' })
+end
+
 local function LoadStorage()
     local file = LoadResourceFile(GetCurrentResourceName(), Config.Storage.FileName)
     if file then
@@ -109,39 +136,39 @@ RegisterNetEvent('personalblips:server:createBlip', function(data)
         return
     end
 
-    local blipId
-    if data.blipId and data.blipId ~= '' then
-        blipId = tonumber(data.blipId) or data.blipId
-        if PlayerBlips[tostring(accountId)] and PlayerBlips[tostring(accountId)][tostring(blipId)] then
-            blipId = NextBlipId
-            NextBlipId = NextBlipId + 1
-        else
-            if type(blipId) == 'number' and blipId >= NextBlipId then
-                NextBlipId = blipId + 1
-            end
-        end
-    else
-        blipId = NextBlipId
-        NextBlipId = NextBlipId + 1
-    end
+    if not data.coords or not data.coords.x or not data.coords.y or not data.coords.z then return end
+
+    local blipId = NextBlipId
+    NextBlipId = NextBlipId + 1
 
     local accKey = tostring(accountId)
     local blipKey = tostring(blipId)
+
+    local sanitizedCoords = {
+        x = tonumber(data.coords.x) or 0,
+        y = tonumber(data.coords.y) or 0,
+        z = tonumber(data.coords.z) or 0
+    }
+    local sanitizedName = string.sub(tostring(data.name or 'Blip'), 1, 32)
+    local sanitizedSprite = math.max(1, math.min(826, tonumber(data.sprite) or Config.Blips.DefaultSprite))
+    local sanitizedColor = math.max(0, math.min(85, tonumber(data.color) or 0))
+    local sanitizedScale = math.max(0.0, math.min(1.0, tonumber(data.scale) or 0.8))
 
     if not PlayerBlips[accKey] then
         PlayerBlips[accKey] = {}
     end
 
     PlayerBlips[accKey][blipKey] = {
-        coords = data.coords,
-        name = data.name,
-        sprite = data.sprite,
-        color = data.color,
-        scale = data.scale
+        coords = sanitizedCoords,
+        name = sanitizedName,
+        sprite = sanitizedSprite,
+        color = sanitizedColor,
+        scale = sanitizedScale
     }
 
     SaveStorage()
-    TriggerClientEvent('personalblips:client:blipCreated', playerSrc, blipId, data.coords, data.name, data.sprite, data.color, data.scale)
+    TriggerClientEvent('personalblips:client:blipCreated', playerSrc, blipId, sanitizedCoords, sanitizedName, sanitizedSprite, sanitizedColor, sanitizedScale)
+    SendDiscordLog('Blip Created', string.format('**Player:** %s (ID: %d)\n**Blip:** %s\n**Sprite:** %d | **Color:** %d | **Scale:** %.1f', GetPlayerNameSafe(playerSrc), playerSrc, sanitizedName, sanitizedSprite, sanitizedColor, sanitizedScale), 3066993)
 end)
 
 RegisterNetEvent('personalblips:server:deleteBlip', function(blipId)
@@ -153,9 +180,11 @@ RegisterNetEvent('personalblips:server:deleteBlip', function(blipId)
     local blipKey = tostring(blipId)
 
     if PlayerBlips[accKey] and PlayerBlips[accKey][blipKey] then
+        local blipName = PlayerBlips[accKey][blipKey].name
         PlayerBlips[accKey][blipKey] = nil
         SaveStorage()
         TriggerClientEvent('personalblips:client:blipDeleted', playerSrc, blipId)
+        SendDiscordLog('Blip Deleted', string.format('**Player:** %s (ID: %d)\n**Blip:** %s (ID: %s)', GetPlayerNameSafe(playerSrc), playerSrc, blipName, blipKey), 15158332)
     end
 end)
 
@@ -168,11 +197,16 @@ RegisterNetEvent('personalblips:server:editBlip', function(blipId, newSprite, ne
     local blipKey = tostring(blipId)
 
     if PlayerBlips[accKey] and PlayerBlips[accKey][blipKey] then
-        PlayerBlips[accKey][blipKey].sprite = newSprite
-        PlayerBlips[accKey][blipKey].color = newColor
-        PlayerBlips[accKey][blipKey].scale = newScale
+        local blipName = PlayerBlips[accKey][blipKey].name
+        local sanitizedSprite = math.max(1, math.min(826, tonumber(newSprite) or Config.Blips.DefaultSprite))
+        local sanitizedColor = math.max(0, math.min(85, tonumber(newColor) or 0))
+        local sanitizedScale = math.max(0.0, math.min(1.0, tonumber(newScale) or 0.8))
+        PlayerBlips[accKey][blipKey].sprite = sanitizedSprite
+        PlayerBlips[accKey][blipKey].color = sanitizedColor
+        PlayerBlips[accKey][blipKey].scale = sanitizedScale
         SaveStorage()
-        TriggerClientEvent('personalblips:client:blipUpdated', playerSrc, blipId, newSprite, newColor, newScale)
+        TriggerClientEvent('personalblips:client:blipUpdated', playerSrc, blipId, sanitizedSprite, sanitizedColor, sanitizedScale)
+        SendDiscordLog('Blip Edited', string.format('**Player:** %s (ID: %d)\n**Blip:** %s\n**New Sprite:** %d | **New Color:** %d | **New Scale:** %.1f', GetPlayerNameSafe(playerSrc), playerSrc, blipName, sanitizedSprite, sanitizedColor, sanitizedScale), 15844367)
     end
 end)
 
@@ -225,6 +259,7 @@ RegisterNetEvent('personalblips:server:shareBlip', function(blipId)
     SaveStorage()
     TriggerClientEvent('personalblips:client:shareResult', src, true)
     TriggerClientEvent('personalblips:client:receiveSharedBlip', targetSrc, newBlipId, blipData.coords, blipData.name, blipData.sprite, blipData.color, blipData.scale)
+    SendDiscordLog('Blip Shared', string.format('**From:** %s (ID: %d)\n**To:** %s (ID: %d)\n**Blip:** %s', GetPlayerNameSafe(src), src, GetPlayerNameSafe(targetSrc), targetSrc, blipData.name), 3447003)
 end)
 
 AddEventHandler('onResourceStart', function(resourceName)
