@@ -10,17 +10,11 @@ A standalone FiveM resource for creating and managing persistent map blips with 
 - Modern glassmorphic NUI interface
 - Human-readable sprite and color selectors
 
-## Requirements
-
-- FiveM Server
-- oxmysql (for future database migration - currently uses JSON)
-
 ## Installation
 
 1. Download or clone this resource into your server's `resources` folder
-2. Build the NUI (see below)
-3. Add `ensure personalblips` to your `server.cfg`
-4. Restart your server or run `refresh` followed by `start personalblips`
+3. Add `ensure infin8_blipcreator` to your `server.cfg`
+4. Restart your server or run `refresh` followed by `start infin8_blipcreator`
 
 ## Usage
 
